@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Filmes Favoritos</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+
+    <!-- ESTILOS PERSONALIZADOS -->
+    <style>
+        /* MEDIA QUERIES */
+        @media (max-width: 600px) {
+            .custom-title {
+                font-size: 1.5rem !important;
+                text-align: center;
+            }
+        }
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .custom-title {
+                font-size: 2rem !important;
+            }
+        }
+        @media (min-width: 1025px) {
+            .custom-title {
+                font-size: 2.5rem !important;
+            }
+        }
+
+        /* ANIMAÇÕES */
+        @keyframes slideFade {
+            from { opacity: 0; transform: translateY(25px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-anim {
+            animation: slideFade 0.5s ease forwards;
+        }
+
+        .card-3d:hover {
+            transform: perspective(600px) rotateX(5deg) rotateY(-5deg) scale(1.03);
+            transition: 0.4s;
+        }
+
+        .pulse {
+            animation: pulse 1.6s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen transition-colors">
+
+    <!-- HEADER -->
+    <header class="w-full bg-blue-600 dark:bg-blue-800 text-white p-6 shadow-lg flex justify-between items-center">
+        <h1 class="custom-title font-bold">🎬 Lista de Filmes Favoritos</h1>
+        
+        <button id="toggleTheme" class="bg-white text-black dark:bg-black dark:text-white px-4 py-2 rounded shadow hover:opacity-80 transition">
+            🌙 Tema
+        </button>
+    </header>
+
+    <main class="w-full max-w-3xl mt-8 p-4">
+
+        <!-- FORMULÁRIO -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Adicionar Filme</h2>
+
+            <div class="flex flex-col gap-4">
+                <input id="titulo" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600" type="text" placeholder="Título do Filme">
+                <input id="ano" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" placeholder="Ano de Lançamento">
+
+                <button onclick="adicionarFilme()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition pulse">
+                    Adicionar
+                </button>
+            </div>
+        </div>
+
+        <!-- CAMPO DE BUSCA -->
+        <h2 class="text-2xl font-semibold mt-8 mb-4">🔍 Buscar Filmes</h2>
+        <input id="search" oninput="buscarFilmes()" 
+               class="w-full p-3 border rounded dark:bg-gray-800 dark:border-gray-700 mb-6"
+               type="text" placeholder="Digite para filtrar por título...">
+
+        <!-- LISTA -->
+        <h2 class="text-2xl font-semibold mb-4">📁 Filmes Adicionados</h2>
+        <div id="lista" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+    </main>
+
+    <script>
+        // Alternar modo escuro
+        document.getElementById("toggleTheme").onclick = () => {
+            document.documentElement.classList.toggle("dark");
+            localStorage.setItem("temaEscuro", document.documentElement.classList.contains("dark"));
+        };
+
+        // Restaurar tema salvo
+        if (localStorage.getItem("temaEscuro") === "true") {
+            document.documentElement.classList.add("dark");
+        }
+
+        /* -------------------------
+            SISTEMA DE FILMES
+        ------------------------- */
+
+        let filmes = [];
+
+        // Carregar filmes salvos ao abrir a página
+        window.onload = () => {
+            const dadosSalvos = localStorage.getItem("filmes");
+            if (dadosSalvos) {
+                filmes = JSON.parse(dadosSalvos);
+                atualizarLista();
+            }
+        };
+
+        function salvarLocalStorage() {
+            localStorage.setItem("filmes", JSON.stringify(filmes));
+        }
+
+        function adicionarFilme() {
+            const titulo = document.getElementById("titulo").value.trim();
+            const ano = document.getElementById("ano").value.trim();
+
+            if (!titulo || !ano) {
+                alert("Preencha todos os campos!");
+                return;
+            }
+
+            filmes.push({ titulo, ano });
+            salvarLocalStorage();
+            atualizarLista();
+            limparCampos();
+        }
+
+        function atualizarLista() {
+            const lista = document.getElementById("lista");
+            const searchTerm = document.getElementById("search").value.toLowerCase();
+            lista.innerHTML = "";
+
+            filmes
+                .filter(f => f.titulo.toLowerCase().includes(searchTerm))
+                .forEach(filme => {
+                    const card = document.createElement("div");
+                    card.className =
+                        "card-anim card-3d bg-white dark:bg-gray-800 p-4 rounded shadow border border-gray-200 dark:border-gray-700 transition";
+
+                    card.innerHTML = `
+                        <h3 class="text-xl font-bold">${filme.titulo}</h3>
+                        <p class="text-gray-600 dark:text-gray-300">Ano: ${filme.ano}</p>
+
+                        <div class="flex gap-2 mt-4">
+                            <button class="text-blue-500 hover:text-blue-700" onclick="editarFilme('${filme.titulo}')">Editar</button>
+                            <button class="text-red-500 hover:text-red-700" onclick="removerFilme('${filme.titulo}')">Remover</button>
+                        </div>
+                    `;
+
+                    lista.appendChild(card);
+                });
+        }
+
+        function removerFilme(titulo) {
+            filmes = filmes.filter(f => f.titulo !== titulo);
+            salvarLocalStorage();
+            atualizarLista();
+        }
+
+        function editarFilme(titulo) {
+            const filme = filmes.find(f => f.titulo === titulo);
+
+            const novoTitulo = prompt("Novo título:", filme.titulo);
+            const novoAno = prompt("Novo ano:", filme.ano);
+
+            if (novoTitulo && novoAno) {
+                filme.titulo = novoTitulo;
+                filme.ano = novoAno;
+                salvarLocalStorage();
+                atualizarLista();
+            }
+        }
+
+        function buscarFilmes() {
+            atualizarLista();
+        }
+
+        function limparCampos() {
+            document.getElementById("titulo").value = "";
+            document.getElementById("ano").value = "";
+        }
+    </script>
+
+</body>
+</html>
